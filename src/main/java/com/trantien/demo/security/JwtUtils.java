@@ -1,8 +1,10 @@
 package com.trantien.demo.security;
 
+import com.trantien.demo.service.CustomUserDetailService;
 import io.jsonwebtoken.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -11,6 +13,8 @@ import java.util.Date;
 @Component
 public class JwtUtils {
     private static final Logger logger = LoggerFactory.getLogger(JwtUtils.class);
+    @Autowired
+    CustomUserDetailService customUserDetailService;
 
     @Value("${jwt.app.jwtSecret}")
     private String jwtSecret;
@@ -26,6 +30,12 @@ public class JwtUtils {
                 .signWith(SignatureAlgorithm.HS512, jwtSecret)
                 .compact();
     }
+
+    public String generateJwtTokenFromUsername(String username){
+        CustomUserDetail customUserDetail = customUserDetailService.loadUserByUsername(username);
+        return generateJwtToken(customUserDetail);
+    }
+
     public Date generateExpirationDate() {
         return new Date(System.currentTimeMillis() + jwtExpirationMs);
     }

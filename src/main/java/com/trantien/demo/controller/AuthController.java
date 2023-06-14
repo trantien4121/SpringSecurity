@@ -1,16 +1,21 @@
 package com.trantien.demo.controller;
 
+import com.trantien.demo.exception.TokenRefreshException;
+import com.trantien.demo.model.RefreshToken;
 import com.trantien.demo.model.Role;
 import com.trantien.demo.model.User;
 import com.trantien.demo.payload.RoleEnum;
 import com.trantien.demo.payload.request.LoginRequest;
 import com.trantien.demo.payload.request.SignUpRequest;
+import com.trantien.demo.payload.request.TokenRefreshRequest;
 import com.trantien.demo.payload.response.JwtResponse;
 import com.trantien.demo.payload.response.MessageResponse;
+import com.trantien.demo.payload.response.TokenRefreshResponse;
 import com.trantien.demo.repository.RoleRepository;
 import com.trantien.demo.repository.UserRepository;
 import com.trantien.demo.security.CustomUserDetail;
 import com.trantien.demo.security.JwtUtils;
+import com.trantien.demo.service.RefreshTokenService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -41,6 +46,9 @@ public class AuthController {
     RoleRepository roleRepository;
 
     @Autowired
+    RefreshTokenService refreshTokenService;
+
+    @Autowired
     PasswordEncoder passwordEncoder;
 
     @Autowired
@@ -58,7 +66,11 @@ public class AuthController {
         List<String> roles = customUserDetail.getAuthorities().stream()
                 .map(item -> item.getAuthority())
                 .collect(Collectors.toList());
+
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(customUserDetail.getId());
+
         return ResponseEntity.ok(new JwtResponse(jwt,
+                refreshToken.getToken(),
                 customUserDetail.getId(),
                 customUserDetail.getUsername(),
                 customUserDetail.getEmail(),
@@ -119,6 +131,22 @@ public class AuthController {
         userRepository.save(user);
 
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
+    }
+
+    @PostMapping("refreshToken")
+    public ResponseEntity<?> refreshToken(@RequestBody TokenRefreshRequest tokenRefreshRequest) {
+        //Lay token(String) tu TokenRefreshRequest duoc gui len
+        String requestRefreshToken = tokenRefreshRequest.getRefreshToken();
+
+        return refreshTokenService.findByToken(requestRefreshToken)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtUtils.generateJwtTokenFromUsername(user.getUsername());
+                    return ResponseEntity.ok(new TokenRefreshResponse(token, requestRefreshToken));
+                })
+                .orElseThrow(() -> new TokenRefreshException(requestRefreshToken,
+                        "Refresh token is not in database!"));
     }
 
 }
