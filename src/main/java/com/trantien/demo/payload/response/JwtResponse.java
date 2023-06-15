@@ -1,6 +1,7 @@
 package com.trantien.demo.payload.response;
 
 import java.util.List;
+import java.util.Set;
 
 public class JwtResponse {
     private String token;
@@ -9,14 +10,16 @@ public class JwtResponse {
     private String username;
     private String email;
     private List<String> roles;
+    private Set<String> permissions;
 
-    public JwtResponse(String token, String refreshToken, Long id, String username, String email, List<String> roles) {
+    public JwtResponse(String token, String refreshToken, Long id, String username, String email, List<String> roles, Set<String> permissions) {
         this.token = token;
         this.refreshToken = refreshToken;
         this.id = id;
         this.username = username;
         this.email = email;
         this.roles = roles;
+        this.permissions = permissions;
     }
 
     public String getToken() {
@@ -65,5 +68,13 @@ public class JwtResponse {
 
     public void setRefreshToken(String refreshToken) {
         this.refreshToken = refreshToken;
+    }
+
+    public Set<String> getPermissions() {
+        return permissions;
+    }
+
+    public void setPermissions(Set<String> permissions) {
+        this.permissions = permissions;
     }
 }

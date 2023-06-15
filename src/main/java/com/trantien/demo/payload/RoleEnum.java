@@ -1,9 +1,9 @@
 package com.trantien.demo.payload;
 
 public enum RoleEnum {
-    ROLE_USER("user"),
-    ROLE_ADMIN("admin"),
-    ROLE_MODERATOR("mod");
+    ROLE_USER("ROLE_USER"),
+    ROLE_ADMIN("ROLE_ADMIN"),
+    ROLE_MODERATOR("ROLE_MODERATOR"),;
 
     private String role;
 

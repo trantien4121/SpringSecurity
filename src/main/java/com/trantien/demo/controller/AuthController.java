@@ -63,9 +63,20 @@ public class AuthController {
         CustomUserDetail customUserDetail = (CustomUserDetail) authentication.getPrincipal();
         String jwt = jwtUtils.generateJwtToken(customUserDetail);
 
+//        List<String> roles = customUserDetail.getAuthorities().stream()
+//                .map(item -> item.getAuthority())
+//                .collect(Collectors.toList());
+
+
         List<String> roles = customUserDetail.getAuthorities().stream()
                 .map(item -> item.getAuthority())
+                .filter(authority -> authority.startsWith("ROLE_"))
                 .collect(Collectors.toList());
+
+        Set<String> permissions = customUserDetail.getAuthorities().stream()
+                .map(item -> item.getAuthority())
+                .filter(authority -> !authority.startsWith("ROLE_"))
+                .collect(Collectors.toSet());
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(customUserDetail.getId());
 
@@ -74,7 +85,8 @@ public class AuthController {
                 customUserDetail.getId(),
                 customUserDetail.getUsername(),
                 customUserDetail.getEmail(),
-                roles));
+                roles,
+                permissions));
     }
     @PostMapping("/signUp")
     public ResponseEntity<?> register(@RequestBody SignUpRequest signUpRequest) {
