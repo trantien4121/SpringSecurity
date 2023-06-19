@@ -28,6 +28,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletResponse;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -55,17 +57,13 @@ public class AuthController {
     JwtUtils jwtUtils;
 
     @PostMapping("/signIn")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest, HttpServletResponse response) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
 
         SecurityContextHolder.getContext().setAuthentication(authentication);
         CustomUserDetail customUserDetail = (CustomUserDetail) authentication.getPrincipal();
         String jwt = jwtUtils.generateJwtToken(customUserDetail);
-
-//        List<String> roles = customUserDetail.getAuthorities().stream()
-//                .map(item -> item.getAuthority())
-//                .collect(Collectors.toList());
 
 
         List<String> roles = customUserDetail.getAuthorities().stream()
@@ -79,6 +77,15 @@ public class AuthController {
                 .collect(Collectors.toSet());
 
         RefreshToken refreshToken = refreshTokenService.createRefreshToken(customUserDetail.getId());
+
+        // Thiết lập cookie
+        Cookie cookie = new Cookie("myRememberMeCookieName", jwt);
+        cookie.setMaxAge(86400); // Thời gian sống của cookie (tính bằng giây), ở đây là 1 ngày
+        cookie.setHttpOnly(true); // Chỉ cho trình duyệt sử dụng cookie, không cho script sử dụng
+        cookie.setSecure(true); // Chỉ sử dụng cookie khi kết nối được mã hóa SSL / TLS (HTTPS)
+        cookie.setPath("/"); // Đường dẫn truy cập cookie
+
+        response.addCookie(cookie);
 
         return ResponseEntity.ok(new JwtResponse(jwt,
                 refreshToken.getToken(),
@@ -95,7 +102,6 @@ public class AuthController {
                     .badRequest()
                     .body(new MessageResponse("Error: Username is already taken!"));
         }
-
         if (userRepository.existsByEmail(signUpRequest.getEmail())) {
             return ResponseEntity
                     .badRequest()
@@ -108,7 +114,6 @@ public class AuthController {
         Set<String> asignRoles = signUpRequest.getRole();
         Set<Role> roles = new HashSet<>();
 
-        // Nếu không truyền thì set role mặc định là ROLE_USER
         if (asignRoles == null) {
             Role userRole = roleRepository.findByName(RoleEnum.ROLE_USER.getRole())
                     .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
@@ -123,13 +128,11 @@ public class AuthController {
                         Role adminRole = roleRepository.findByName(RoleEnum.ROLE_ADMIN.getRole())
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(adminRole);
-
                         break;
                     case "mod":
                         Role modRole = roleRepository.findByName(RoleEnum.ROLE_MODERATOR.getRole())
                                 .orElseThrow(() -> new RuntimeException("Error: Role is not found."));
                         roles.add(modRole);
-
                         break;
                     default:
                         Role userRole = roleRepository.findByName(RoleEnum.ROLE_USER.getRole())
@@ -138,10 +141,8 @@ public class AuthController {
                 }
             });
         }
-
         user.setRoles(roles);
         userRepository.save(user);
-
         return ResponseEntity.ok(new MessageResponse("User registered successfully!"));
     }
 

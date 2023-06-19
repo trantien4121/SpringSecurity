@@ -54,17 +54,34 @@ public class  WebSecurityConfig extends WebSecurityConfigurerAdapter {
 
     @Override
     public void configure(WebSecurity web) {
-        web.ignoring().antMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html", "/swagger-ui/**/**", "/swagger-resources/**", "/configuration/**", "/webjars/**");
+        web.ignoring().antMatchers("/v2/api-docs",
+                "/v3/api-docs",
+                "/v3/api-docs/**",
+                "/swagger-resources",
+                "/swagger-resources/**",
+                "/configuration/ui",
+                "/configuration/security",
+                "/swagger-ui/**",
+                "/webjars/**",
+                "/swagger-ui.html");
     }
 
     @Override
     protected void configure(HttpSecurity http) throws Exception {
         http.cors().and().csrf().disable()
-                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler).and()
-                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS).and()
-                .authorizeRequests().antMatchers("/api/auth/**").permitAll()
-                .antMatchers("/api/testAuthorize/**").permitAll()
-                .anyRequest().authenticated();
+                .exceptionHandling().authenticationEntryPoint(unauthorizedHandler)
+                    .and()
+                .sessionManagement().sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                    .and()
+                .authorizeRequests()
+                    .antMatchers("/api/auth/**", "/api/email/**").permitAll()
+                    .antMatchers("/api/testAuthorize/**").permitAll()
+                    .anyRequest().authenticated();
+//                    .and()
+//                .rememberMe() // Thêm cấu hình Base Cookie ở đây
+//                    .key("uniqueAndSecret") // Sử dụng khóa bí mật để mã hóa cookie
+//                    .rememberMeCookieName("my-remember-me") // Đặt tên cho cookie
+//                    .tokenValiditySeconds(24 * 60 * 60);
 
         http.addFilterBefore(authenticationJwtTokenFilter(), UsernamePasswordAuthenticationFilter.class);
     }

@@ -9,9 +9,9 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
-
 import javax.servlet.FilterChain;
 import javax.servlet.ServletException;
+import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
@@ -28,7 +28,22 @@ public class AuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
         try {
-            String token = getTokenFromRequest(request);
+//            String token = getTokenFromRequest(request);
+            String token = null;
+
+            if(getTokenFromRequest(request) != null){
+                token = getTokenFromRequest(request);
+            }
+            else if(request.getCookies() != null){
+                Cookie[] cookies = request.getCookies();
+                for(Cookie cookie: cookies){
+                    if (cookie.getName().equals("myRememberMeCookieName")) {
+                        token = cookie.getValue();
+                        break;
+                    }
+                }
+            }
+
             if (token != null && jwtUtils.validateJwtToken(token)) {
                 String username = jwtUtils.getUsernameFromJwtToken(token);
                 CustomUserDetail customUserDetails = customUserDetailService.loadUserByUsername(username);
@@ -41,6 +56,7 @@ public class AuthenticationFilter extends OncePerRequestFilter {
             logger.error("Cannot set user authentication: {}", e);
         }
 
+         // Chuyển tiếp request, response đến một filter khác để tiếp tục xử lý
          filterChain.doFilter(request, response);
     }
 
